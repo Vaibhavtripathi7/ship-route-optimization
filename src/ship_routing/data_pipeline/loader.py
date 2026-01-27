@@ -17,7 +17,7 @@ class WeatherLoader:
         lats = np.arange(min_lat, max_lat, resolution)
         lons = np.arange(min_lon, max_lon, resolution)
 
-        times = pd.date_range(start="2026-01-01", period=24, freq="h")
+        times = pd.date_range(start="2026-01-01", periods=24, freq="h")
 
         shape = (len(times), len(lats), len(lons))
 
@@ -41,7 +41,7 @@ class WeatherLoader:
             },
             coords = {
                 'time':times,
-                'lats': lats,
+                'lat': lats,
                 'lon': lons
     
             },
@@ -59,7 +59,7 @@ class WeatherLoader:
         self.dataset.to_netcdf(filepath)
         print('data saved!')
 
-    def get_conditions(self, lat, lon, time):
+    def get_conditions(self, lat:float, lon:float, time:str):
 
         if self.dataset is None:
             raise ValueError("Dataset not loaded.")
