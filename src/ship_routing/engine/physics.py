@@ -22,7 +22,7 @@ class ShipPhysics:
 
     
     def get_calm_water_resistance(self, speed_knots): 
-        speed_knots= knots_to_ms(v)
+        speed_knots= knots_to_ms(speed_knots)
         coeff_of_resist = 0.0025 # for large ships !
         resistance = 0.5 * self.rho_water * self.surface_water * coeff_of_resist * (speed_knots**2)
         return resistance
@@ -37,7 +37,22 @@ class ShipPhysics:
 
         return wind_resistance
     
+    def wave_resistance(self, wave_height): 
+        resistance = 1500 * (wave_height**2) * self.width
+        return resistance
+
     def calculate_fuel_consumption(self, speed_knots, weather_data: dict[str, float]):
 
-        
+        wind_speed = weather_data["wind_speed"]
+        wave_height = weather_data["wave_height"] 
+        total_resistance = get_calm_water_resistance(speed_knots) + get_wind_resistance(speed_knots, wind_speed) + wave_resistance(wave_height)
+        speed_ms = knots_to_ms(speed_knots)
+
+        effective_power = total_resistance * speed_ms
+        engine_power = (effective_power/1000) / 0.7
+        fuel_burn = engine_power * (180/1000000)
+
+        return fuel_burn
+    
+
 
