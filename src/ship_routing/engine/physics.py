@@ -4,7 +4,7 @@ from typing import Dict, Union
 class ShipPhysics: 
 
 
-    def __init__(self, length, width, draft, block_coeff, design_speed):
+    def __init__(self, length, width, draft = 12.0, block_coeff = 0.8, design_speed = 15.0):
         self.length = length
         self.width = width
         self.draft = draft

@@ -22,4 +22,9 @@ class Node:
 class Astar:
     def __init__(self, weather_data, physics_engine):
         self.weather = weather_data
-        self 
+        self.physics_engine = physics_engine
+        self.lats = weather_data.coords['lat'].values
+        self.lons = weather_data.coords['lon'].values
+        self.max_lat_idx = len(self.lats)
+        self.max_lon_idx = len(self.lons)
+
