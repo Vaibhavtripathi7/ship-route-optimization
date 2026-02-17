@@ -4,7 +4,7 @@ from typing import Dict, Union
 class ShipPhysics: 
 
 
-    def __init__(self, length, width, draft = 12.0, block_coeff = 0.8, design_speed = 15.0):
+    def __init__(self, length = 200.0, width = 32.0, draft = 12.0, block_coeff = 0.8, design_speed = 15.0):
         self.length = length
         self.width = width
         self.draft = draft
@@ -23,7 +23,7 @@ class ShipPhysics:
     
     def get_calm_water_resistance(self, speed_knots): 
         speed_knots= self.knots_to_ms(speed_knots)
-        coeff_of_resist = 0.0025 # for large ships !
+        coeff_of_resist = 0.0025 
         resistance = 0.5 * self.rho_water * self.surface_area * coeff_of_resist * (speed_knots**2)
         return resistance
 
