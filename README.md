@@ -42,16 +42,16 @@ The Deep RL inference engine was tested alongside a weather-adaptive discrete A*
 - **Machine Learning & RL:** PyTorch, Stable-Baselines3, Gymnasium
 - **Data Engineering:** Xarray, NumPy, Pandas, NetCDF4
 - **Software Engineering:** Object-Oriented Programming (OOP), Python Type Hinting
-- **DevOps & CI/CD:** GitHub Actions, Pytest, Poetry (Deterministic Dependency Management)
+- **DevOps & CI/CD:** GitHub Actions, Pytest, Poetry
 
 ## Repository Structure
 
 ```text
-├── dataset/                     # Ignored directory 
+├── data/                     # Ignored directory 
 ├── tests/                       # Pytest suite for physics and data 
 ├── .github/workflows/           # CI/CD pipeline configuration
-└── src/
-    ├── datapipeline/
+└── src/ship_routing
+    ├── data_pipeline/
     │   └── loader.py            # Weather tensor generation and 
     ├── engine/
     │   ├── astar__c.py          # Classical baseline pathfinding 
@@ -60,3 +60,31 @@ The Deep RL inference engine was tested alongside a weather-adaptive discrete A*
         ├── envir.py             # Custom Gymnasium MDP Environment
         ├── train.py             # PPO training loop and callbacks
         └── model/               # Converged PPO model weights
+```
+
+##  Getting Started
+
+This project uses [Poetry](https://python-poetry.org/) for strict dependency isolation.
+
+### 1. Local Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/vaibhavtripathi7/ship-route-optimization.git
+cd ship-route-optimization
+
+# Install dependencies via Poetry
+poetry install
+```
+
+### 2. Running the Test Suite
+
+This repository contains a continuous integration suite that checks the data loader's integrity and the physics engine's mathematical accuracy.
+
+```bash
+poetry run pytest tests/
+```
+
+## License
+
+- [MIT](https://github.com/Vaibhavtripathi7/ship-route-optimization/blob/master/LICENSE)
