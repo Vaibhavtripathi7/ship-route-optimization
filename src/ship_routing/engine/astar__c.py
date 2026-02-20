@@ -130,21 +130,34 @@ class AStarPlanner:
                     "wave_height": wave_h
                 }
 
-                fuel_rate_mt_h = self.physics.calculate_fuel_consumption(speed_knots, weather_snapshot)
-                
-                is_diagonal = (current.lat_idx != n_lat) and (current.lon_idx != n_lon)
-                dist_km = 55.0 * (1.414 if is_diagonal else 1.0)
-                
-                time_hours = dist_km / speed_kmh
-                
-                step_fuel_cost = fuel_rate_mt_h * time_hours
+                if current.parent and self.smoothingcurve(current.parent, (n_lat, n_lon)):
+                    dist_deg = np.sort((current.parent.lat_idx - n_lat)**2 + (current.parent.lon_idx - n_lon)**2)
+                    dist_km = dist_deg * 111.0
+                    time_hours = dist_km /speed_kmh
 
-                new_g_cost = current.g_cost + step_fuel_cost
-                new_node = Node(n_lat, n_lon, new_g_cost, parent=current)
-                new_node.h_cost = self.heuristic((n_lat, n_lon), goal_idx)
+                    step_fuel_cost = fuel_rate_mt_h * time_hours
+
+                    new_g_cost = current.parent.g_cost + step_fuel_cost
+
+                    if (n_lat, n_lon) not in visited or new_g_cost < visited.get((n_lat, n_lon), float('inf')):
+                        new_node = Node(n_lat, n_lon, new_g_cost, parent=current.parent)
+                        new_node.h_cost= self.heuristic((n_lat, n_lon), goal_idx)
+                        heapq.heappush(open_list, new_node)
+
+                else:
+                
+                    is_diagonal = (current.lat_idx != n_lat) and (current.lon_idx != n_lon)
+                    dist_km = 55.0 * (1.414 if is_diagonal else 1.0)
+                
+                    time_hours = dist_km / speed_kmh
+                    step_fuel_cost = fuel_rate_mt_h * time_hours
+                    new_g_cost = current.g_cost + step_fuel_cost
                 
                 if (n_lat, n_lon) not in visited or new_g_cost < visited[(n_lat, n_lon)]:
-                     heapq.heappush(open_list, new_node)
+                    new_node = Node(n_lat, n_lon, new_g_cost, parent=current)
+                    new_node.h_cost = self.heuristic((n_lat, n_lon), goal_idx)
+                    
+                    heapq.heappush(open_list, new_node)
 
         if final_node:
             print(f"Completed,Total Fuel consumption is: {final_node.g_cost:.2f} tns")
