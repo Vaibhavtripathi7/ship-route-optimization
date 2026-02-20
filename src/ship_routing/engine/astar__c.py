@@ -54,38 +54,6 @@ class AStarPlanner:
                 
         return neighbors
 
-    def smoothingcurve(self, start, end):
-        x0, y0 = start.lat_idx, start.lon_idx
-        x1, y1 = end
-        dx = abs(x1 - x0)
-        dy = abs(y1- y0)
-        x, y = x0, y0
-
-        sx = 1 if x0 < x1 else -1 
-        sy = 1 if y0 < y1 else -1 
-        err = dx - dy
-
-        while True:
-            try:
-                if not (0 <= x < self.max_lat_idx) and (0 <= y < self.max_lon_idx):
-                    return False
-            
-            except: 
-                return False
-
-            if (x,y) == (x1, y1):
-                return True
-
-            e2 = 2 * err
-            if e2 > -dy:
-                err -= dy 
-            elif e2 < dx:
-                err += dx 
-                y += sy
-
-        return True
-
-    
     def plan(self, start_idx: Tuple[int, int], goal_idx: Tuple[int, int], speed_knots: float = 15.0):
 
         open_list = []
@@ -131,34 +99,21 @@ class AStarPlanner:
                 }
                 fuel_rate_mt_h =self.physics.calculate_fuel_consumption(speed_knots, weather_snapshot)
 
-                if current.parent and self.smoothingcurve(current.parent, (n_lat, n_lon)):
-                    dist_deg = np.sort((current.parent.lat_idx - n_lat)**2 + (current.parent.lon_idx - n_lon)**2)
-                    dist_km = dist_deg * 111.0
-                    time_hours = dist_km /speed_kmh
-
-                    step_fuel_cost = fuel_rate_mt_h * time_hours
-
-                    new_g_cost = current.parent.g_cost + step_fuel_cost
-
-                    if (n_lat, n_lon) not in visited or new_g_cost < visited.get((n_lat, n_lon), float('inf')):
-                        new_node = Node(n_lat, n_lon, new_g_cost, parent=current.parent)
-                        new_node.h_cost= self.heuristic((n_lat, n_lon), goal_idx)
-                        heapq.heappush(open_list, new_node)
-
-                else:
+                fuel_rate_mt_h = self.physics.calculate_fuel_consumption(speed_knots, weather_snapshot)
                 
-                    is_diagonal = (current.lat_idx != n_lat) and (current.lon_idx != n_lon)
-                    dist_km = 55.0 * (1.414 if is_diagonal else 1.0)
+                is_diagonal = (current.lat_idx != n_lat) and (current.lon_idx != n_lon)
+                dist_km = 55.0 * (1.414 if is_diagonal else 1.0)
                 
-                    time_hours = dist_km / speed_kmh
-                    step_fuel_cost = fuel_rate_mt_h * time_hours
-                    new_g_cost = current.g_cost + step_fuel_cost
+                time_hours = dist_km / speed_kmh
+                
+                step_fuel_cost = fuel_rate_mt_h * time_hours
+
+                new_g_cost = current.g_cost + step_fuel_cost
+                new_node = Node(n_lat, n_lon, new_g_cost, parent=current)
+                new_node.h_cost = self.heuristic((n_lat, n_lon), goal_idx)
                 
                 if (n_lat, n_lon) not in visited or new_g_cost < visited[(n_lat, n_lon)]:
-                    new_node = Node(n_lat, n_lon, new_g_cost, parent=current)
-                    new_node.h_cost = self.heuristic((n_lat, n_lon), goal_idx)
-                    
-                    heapq.heappush(open_list, new_node)
+                     heapq.heappush(open_list, new_node)
 
         if final_node:
             print(f"Completed,Total Fuel consumption is: {final_node.g_cost:.2f} tns")
