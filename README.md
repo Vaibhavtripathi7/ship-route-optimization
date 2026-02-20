@@ -87,4 +87,4 @@ poetry run pytest tests/
 
 ## License
 
-- [MIT](https://github.com/Vaibhavtripathi7/ship-route-optimization/blob/master/LICENSE)
+- This project is licensed under the [MIT](https://github.com/Vaibhavtripathi7/ship-route-optimization/blob/master/LICENSE) License.
