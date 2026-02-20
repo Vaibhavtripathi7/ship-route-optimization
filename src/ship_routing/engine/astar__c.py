@@ -122,7 +122,7 @@ class AStarPlanner:
             while curr:
                 path.append((curr.lat_idx, curr.lon_idx))
                 curr = curr.parent
-            return path[::-1]
+            return path[::-1], final_node.g_cost
         else:
             print("No path found.")
             return []

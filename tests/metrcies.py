@@ -18,10 +18,10 @@ def generate_resume_metrics():
     planner = AStarPlanner(loader.dataset, physics)
     
     t0 = time.time()
-    path = planner.plan(start_pos, goal_pos, speed_knots=15.0)
+    path, fuel_astar = planner.plan(start_pos, goal_pos, speed_knots=15.0)
     t_astar = time.time() - t0
     
-    fuel_astar = 426.05 
+    # fuel_astar = 426.05 
     print(f"   Time: {t_astar:.4f}s | Fuel: {fuel_astar} tons")
 
     # Now using RL model 
@@ -49,7 +49,6 @@ def generate_resume_metrics():
     if total_fuel_rl < fuel_astar:
         print(f"(We saved {fuel_astar - total_fuel_rl:.2f} tns!)")
     else:
-        print(f"(WE traded fuel for speed/safety)")
-
+        pass 
 if __name__ == "__main__":
     generate_resume_metrics()
