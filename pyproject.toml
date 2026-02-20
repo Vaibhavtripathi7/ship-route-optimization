@@ -10,34 +10,29 @@ packages = [{include = "ship_routing", from = "src"}]
 python = "^3.10"
 numpy = "^1.26"
 pandas = "^2.2"
-# GeoSpatial Stack (For Maps & Weather)
 xarray = "^2024.1" 
 netcdf4 = "^1.6"
 scipy = "^1.12"
-# ML Stack (For the AI)
 torch = "^2.2"
 gymnasium = "^0.29"
-# Web/API (For the Backend)
-fastapi = "^0.109"
+
 uvicorn = "^0.27"
-pydantic = "^2.6"
 shimmy = "<2.0.0"
 stable-baselines3 = "^2.7.1"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.0"      # For testing
-ruff = "^0.3"        # For linting (code quality)
-black = "^24.2"      # For formatting
-jupyter = "^1.0"     # For experiments
+pytest = "^8.0"      
+ruff = "^0.3"        
+black = "^24.2"      
+jupyter = "^1.0"  
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-# -- Tool Configurations --
 [tool.ruff]
 line-length = 88
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"] # Check for Errors, Formatting, and Import sorting
+select = ["E", "F", "I"]
