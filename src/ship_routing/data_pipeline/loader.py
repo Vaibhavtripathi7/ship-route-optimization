@@ -58,7 +58,7 @@ class WeatherLoader:
 
         folder_path = os.path.dirname(filepath)
         if folder_path and not os.path.exists(folder_path):
-            os.mkdir(folder_path)
+            os.makedirs(folder_path)
         self.dataset.to_netcdf(filepath)
         print('data saved!')
 
