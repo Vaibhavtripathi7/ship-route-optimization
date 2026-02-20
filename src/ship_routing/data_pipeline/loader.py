@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 import pandas as pd
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 import os
 
 class WeatherLoader:
