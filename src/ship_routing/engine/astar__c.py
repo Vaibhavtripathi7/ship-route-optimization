@@ -54,6 +54,38 @@ class AStarPlanner:
                 
         return neighbors
 
+    def smoothingcurve(self, start, end):
+        x0, y0 = start.lat_idx, start.lon_idx
+        x1, y1 = end
+        dx = abs(x1 - x0)
+        dy = abs(y1- y0)
+        x, y = x0, y0
+
+        sx = 1 if x0 < x1 else -1 
+        sy = 1 if y0 < y1 else -1 
+        err = dx - dy
+
+        while True:
+            try:
+                if not (0 <= x < self.max_lat_idx) and (0 <= y < self.max_lon_idx):
+                    return False
+            
+            except: 
+                return False
+
+            if (x,y) == (x1, y1):
+                return True
+
+            e2 = 2 * err
+            if e2 > -dy:
+                err -= dy 
+            elif e2 < dx:
+                err += dx 
+                y += sy
+
+        return True
+
+    
     def plan(self, start_idx: Tuple[int, int], goal_idx: Tuple[int, int], speed_knots: float = 15.0):
 
         open_list = []
