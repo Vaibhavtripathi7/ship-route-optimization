@@ -129,6 +129,7 @@ class AStarPlanner:
                     "v_wind": v_wind, 
                     "wave_height": wave_h
                 }
+                fuel_rate_mt_h =self.physics.calculate_fuel_consumption(speed_knots, weather_snapshot)
 
                 if current.parent and self.smoothingcurve(current.parent, (n_lat, n_lon)):
                     dist_deg = np.sort((current.parent.lat_idx - n_lat)**2 + (current.parent.lon_idx - n_lon)**2)
