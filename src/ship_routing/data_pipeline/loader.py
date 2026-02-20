@@ -2,11 +2,11 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 from typing import Tuple, Optional
-
+import os
 
 class WeatherLoader:
 
-    def __init__(self,Bounds : list[float, float, float, float] = (-10, 30, 50, 100)):
+    def __init__(self,Bounds : List[float, float, float, float] = (-10, 30, 50, 100)):
         self.Bound = Bounds
         self.dataset: Optinal[xr.dataset] = None
     
@@ -56,6 +56,9 @@ class WeatherLoader:
         if self.dataset is None : 
             raise ValueError('No dataset')
 
+        folder_path = os.path.dirname(filepath)
+        if folder_path and not os.path.exists(folder_path):
+            os.makedir(folder_path)
         self.dataset.to_netcdf(filepath)
         print('data saved!')
 
