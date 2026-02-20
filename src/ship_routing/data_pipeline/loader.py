@@ -6,7 +6,7 @@ import os
 
 class WeatherLoader:
 
-    def __init__(self,Bounds : List[float, float, float, float] = (-10, 30, 50, 100)):
+    def __init__(self,Bounds : tuple[float, float, float, float] = (-10, 30, 50, 100)):
         self.Bound = Bounds
         self.dataset: Optinal[xr.dataset] = None
     
