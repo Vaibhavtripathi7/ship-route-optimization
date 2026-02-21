@@ -11,15 +11,15 @@ An autonomous ship routing engine replaces traditional graph-based pathfinding m
 
 This project uses strict modularity. It separates the data access layer, domain logic, and the machine learning execution model.
 
-1. **Vectorized ETL Pipeline (`src/data_pipeline`):** - Generates and processes 4D synthetic environmental tensors, including Time, Latitude, Longitude, and Wind/Wave variables.
+1. **Vectorized ETL Pipeline (`src/data_pipeline`):**  Generates and processes 4D synthetic environmental tensors, including Time, Latitude, Longitude, and Wind/Wave variables.
 
    - Uses `xarray` and `NumPy` for **sub-5ms** localized weather querying. This helps eliminate simulation bottlenecks.
 
-2. **Physics Simulation Engine (`src/engine`):** - A custom `Gymnasium` environment that follows **ITTC Hydrodynamic Resistance** formulas closely.
+2. **Physics Simulation Engine (`src/engine`):**  A custom `Gymnasium` environment that follows **ITTC Hydrodynamic Resistance** formulas closely.
 
    - Calculates **real-time** vessel drag, including calm water friction, wind resistance, and wave-added resistance, to turn kinematic movement into actual fuel consumption (MT/h).
 
-3. **Continuous Control Model (`src/models`):** - A Proximal Policy Optimization (PPO) Actor-Critic network.
+3. **Continuous Control Model (`src/models`):**  A Proximal Policy Optimization (PPO) Actor-Critic network.
 
    - Evaluates a **9-dimensional state vector** to adjust heading and speed. This process improves fuel efficiency and keeps the estimated time of arrival on track.
 
