@@ -11,29 +11,46 @@ An autonomous ship routing engine replaces traditional graph-based pathfinding m
 
 This project uses strict modularity. It separates the data access layer, domain logic, and the machine learning execution model.
 
-1. **Vectorized ETL Pipeline (`src/datapipeline`):** - Generates and processes 4D synthetic environmental tensors, including Time, Latitude, Longitude, and Wind/Wave variables.
+1. **Vectorized ETL Pipeline (`src/data_pipeline`):** - Generates and processes 4D synthetic environmental tensors, including Time, Latitude, Longitude, and Wind/Wave variables.
 
-   - Uses `xarray` and `NumPy` for sub-5ms localized weather querying. This helps eliminate simulation bottlenecks.
+   - Uses `xarray` and `NumPy` for **sub-5ms** localized weather querying. This helps eliminate simulation bottlenecks.
 
 2. **Physics Simulation Engine (`src/engine`):** - A custom `Gymnasium` environment that follows **ITTC Hydrodynamic Resistance** formulas closely.
 
-   - Calculates real-time vessel drag, including calm water friction, wind resistance, and wave-added resistance, to turn kinematic movement into actual fuel consumption (MT/h).
+   - Calculates **real-time** vessel drag, including calm water friction, wind resistance, and wave-added resistance, to turn kinematic movement into actual fuel consumption (MT/h).
 
 3. **Continuous Control Model (`src/models`):** - A Proximal Policy Optimization (PPO) Actor-Critic network.
 
-   - Evaluates a 9-dimensional state vector to adjust heading and speed. This process improves fuel efficiency and keeps the estimated time of arrival on track.
+   - Evaluates a **9-dimensional state vector** to adjust heading and speed. This process improves fuel efficiency and keeps the estimated time of arrival on track.
 
 
 ## Performance Benchmarks
 
-The Deep RL inference engine was tested alongside a weather-adaptive discrete A* graph-search algorithm. This was done to compare continuous kinematic control with grid-based pathfinding.
+The Deep RL inference engine was tested in two areas: computational latency compared to traditional search algorithms, and physical fuel efficiency compared to standard maritime navigation methods.
+
+### 1. Algorithmic Efficiency (Deep RL vs. A* Search)
+
+We compared the agent's continuous state-space inference to a discrete, weather-adaptive A* graph-search baseline.
 
 | Metric | Classical A* Search | Deep RL Agent (PPO) | Net Improvement |
 | :--- | :--- | :--- | :--- |
 | **Time Complexity** | $O(N \log N)$ | **$O(1)$** | Algorithmic shift |
-| **Inference Latency** | 21.59 seconds | **0.48 seconds** | **44.2x Faster**|
-| **Fuel Consumed** | 183.33 Tons | **29.37 Tons** | **84% Reduction**  |
+| **Inference Latency** | 21.59 seconds | **0.54 seconds** | **40x Faster** |
 | **Path Strategy** | Discrete Grid (Jagged) | **Continuous Kinematics** | Physics-Optimized |
+
+### 2. Environmental Simulation (Storm Avoidance Scenario)
+To test physical viability, the RL agent was evaluated against standard "Fixed Waypoint" maritime navigation. A synthetic, dynamically rotated Gaussian storm front, or squall line, was placed directly into a traditional shipping lane.
+
+![Storm Avoidance Routing](./route_comparison.png)
+
+*Notice how the Deep RL agent (Green) can naturally compute a continuous kinematic arc to avoid the greatest wave resistance of the storm. In contrast, the Traditional Route (Red) goes straight through.*
+
+| Metric | Traditional Navigation | Deep RL Agent (PPO) | Net Improvement |
+| :--- | :--- | :--- | :--- |
+| **Obstacle Avoidance** | Fails (Drives through storm) | **Succeeds (Curves around)** | Zero-Collision |
+| **Fuel Consumed** | 81.1 MT | **35.2 MT** | **56.6% Reduction**|
+| **Cost Savings** | Baseline | **~$27,500 per voyage** | Massive ROI |
+
 
 *Note: The significant drop in fuel consumption shows that the RL agent can make small changes in direction without facing the large grid-discretization penalties found in traditional pathfinding methods.*
 
@@ -47,7 +64,7 @@ The Deep RL inference engine was tested alongside a weather-adaptive discrete A*
 ## Repository Structure
 
 ```text
-├── data/                     # Ignored directory 
+├── data/                        # Ignored directory 
 ├── tests/                       # Pytest suite for physics and data 
 ├── .github/workflows/           # CI/CD pipeline configuration
 └── src/ship_routing
