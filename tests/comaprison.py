@@ -71,7 +71,7 @@ def run_scenario():
     print(f"Traditional Route Fuel: {trad_fuel:.2f} MT")
 
     print("\nRunning Deep RL Agent")
-    model = PPO.load("/home/vaibahv/ship-route-optimization/src/ship_routing/models/model/ppo_ship_final.zip")
+    model = PPO.load("./src/ship_routing/models/model/ppo_ship_final.zip")
     obs, _ = env.reset()
     rl_path = [(env.current_pos)]
     rl_fuel = 0.0
