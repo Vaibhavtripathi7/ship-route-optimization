@@ -1,4 +1,4 @@
-# 🚢 Physics-Informed Maritime Route Optimization
+# Physics-Informed Maritime Route Optimization
 
 [![CI Pipeline](https://github.com/vaibhavtripathi7/ship-route-optimization/actions/workflows/ci.yml/badge.svg)](https://github.com/vaibhavtripathi7/ship-route-optimization/actions)
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
