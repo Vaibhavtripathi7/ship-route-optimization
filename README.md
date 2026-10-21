@@ -1,107 +1,142 @@
-# Physics-Informed Maritime Route Optimization
+# Ship weather routing with reinforcement learning
 
-[![CI Pipeline](https://github.com/vaibhavtripathi7/ship-route-optimization/actions/workflows/ci.yml/badge.svg)](https://github.com/vaibhavtripathi7/ship-route-optimization/actions)
-[![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
-[![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
+[![CI](https://github.com/Vaibhavtripathi7/ship-route-optimization/actions/workflows/ci.yml/badge.svg)](https://github.com/Vaibhavtripathi7/ship-route-optimization/actions/workflows/ci.yml)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 
-An autonomous ship routing engine replaces traditional graph-based pathfinding methods, like A*, with a Deep Reinforcement Learning model called PPO. The agent trains in a custom hydrodynamic physics simulation. It executes continuous, weather-adaptive kinematic control in changing ocean environments.
+A merchant ship pays for every hour at sea and for every tonne of fuel it
+burns. Fuel per hour climbs steeply with speed and with wave height, and the
+storms that raise the waves move while the ship is underway. This project asks
+whether a PPO agent that picks course and speed every hour from a forecast can
+beat simple and classical routing on that cost, and measures the answer on
+voyages and weather it never trained on.
 
+## How it works
 
-## System Architecture
+| module | what it does |
+|:-|:-|
+| `weather.py` | Seeded synthetic forecasts on a 0.5° grid, every 3 hours for 10 days: smooth trade winds and swell, wind sea from the Pierson-Moskowitz relation, and drifting cyclonic storms. |
+| `physics.py` | Resistance of a Panamax bulk carrier: ITTC-57 friction line with a form factor, STAWAVE-1 added resistance in waves, apparent wind drag along the hull. Fuel follows from delivered power at 180 g/kWh. |
+| `env.py` | Gymnasium environment. Every hour the agent holds course, turns 15° to either side, or changes speed by one knot within 8 to 18 kn. It sees distance and bearing to the goal, its speed, the headwind and wave height where it is, and forecast wave height at six points up to 150 nm ahead, taken at the time it would get there. |
+| `astar.py` | A* over a 16 connected grid, costing each leg with the forecast for the hour the ship reaches it. |
+| `policies.py` | The policies being compared, and `sail()`, which runs any of them through the same environment so every voyage is costed by the same simulator. |
+| `train.py` | PPO from Stable-Baselines3, three seeds of 1M steps each, on random voyages over 24 training forecasts. |
+| `evaluate.py` | Runs every policy on 101 held out voyages and writes `results/`. |
+| `service.py` | FastAPI service that routes a voyage with any of the planners. |
 
-This project uses strict modularity. It separates the data access layer, domain logic, and the machine learning execution model.
+The reward is the voyage cost. Each hour the agent pays for fuel at $600 a
+tonne and for charter hire at $500 an hour, and is credited $150 for every mile
+it makes good towards the destination. The credit is a potential difference, so
+it does not change which arrival is cheapest; it only makes the signal dense.
+Leaving the forecast area or running out of forecast forfeits the credit for
+the miles still to go.
 
-1. **Vectorized ETL Pipeline (`src/data_pipeline`):**  Generates and processes 4D synthetic environmental tensors, including Time, Latitude, Longitude, and Wind/Wave variables.
+## Results
 
-   - Uses `xarray` and `NumPy` for **sub-5ms** localized weather querying. This helps eliminate simulation bottlenecks.
+Every policy was run on 101 voyages whose weather it never saw in training:
+60 open sea voyages with random weather, 40 with a storm placed to cross the
+direct route just as a 14 kn ship gets there, and the case plotted below. All
+of them sail through the same simulator. The baseline is a rhumb line at 14 kn,
+what a ship would do without any routing. Figures are the mean change in voyage
+cost against that baseline over the same voyages, with a 95% confidence
+interval. Full tables are in [results/summary.md](results/summary.md) and every
+voyage is in [results/voyages.csv](results/voyages.csv).
 
-2. **Physics Simulation Engine (`src/engine`):**  A custom `Gymnasium` environment that follows **ITTC Hydrodynamic Resistance** formulas closely.
+| policy | open sea | storm crossing |
+|:-|-:|-:|
+| direct 11 kn | -6.55% ± 0.57 | -5.98% ± 0.75 |
+| A* 11 kn | -4.98% ± 0.65 | -7.55% ± 1.47 |
+| PPO seed 0 | -6.40% ± 0.56 | -5.91% ± 1.03 |
+| PPO seed 1 | -6.57% ± 0.59 | -7.08% ± 1.33 |
+| PPO seed 2 | -6.46% ± 0.64 | -5.97% ± 0.82 |
+| best fixed speed, chosen in hindsight | -6.98% ± 0.54 | -7.56% ± 1.38 |
 
-   - Calculates **real-time** vessel drag, including calm water friction, wind resistance, and wave-added resistance, to turn kinematic movement into actual fuel consumption (MT/h).
+What this says:
 
-3. **Continuous Control Model (`src/models`):**  A Proximal Policy Optimization (PPO) Actor-Critic network.
+- Most of the saving on offer comes from speed, not from the path. Going
+  direct at 11 kn, the cheapest constant speed in calm water, saves 6 to 6.5%.
+  Picking the best constant speed for each voyage in hindsight adds about half
+  a point on open sea.
+- PPO found that speed by itself. On open sea all three seeds land on the
+  11 kn baseline, but none of them beats it.
+- When a storm crosses the route, A* planning on the full forecast is the best
+  router, about 1.6 points better than going direct. Picking the right
+  constant speed is worth just as much: the best fixed speed in hindsight
+  matches A*, and in 24 of the 40 voyages it is slower than 11 kn, so the storm
+  has moved on by the time the ship gets there. One PPO seed gets most of that
+  gain; the other two do no better than going direct. That spread between
+  seeds is why three were trained.
+- On open sea A* does worse than going direct. Its 16 connected grid adds up to
+  3% distance, and the waves it steers around are rarely worth the detour.
+- Neither planner is meaningfully faster: A* plans a voyage in 15 to 40 ms
+  (median), and the PPO policy spends 26 to 38 ms on inference over a whole
+  voyage.
 
-   - Evaluates a **9-dimensional state vector** to adjust heading and speed. This process improves fuel efficiency and keeps the estimated time of arrival on track.
+![Storm crossing the direct route](results/storm_case.png)
 
+In this storm case A* passes south of the storm, PPO seed 0 edges south and
+seeds 1 and 2 hold close to the direct line. Going straight at 11 kn still
+came out cheapest here: a detour has to save more fuel than its extra hours
+cost.
 
-## Performance Benchmarks
+PPO trains with γ = 1 because voyage cost is not discounted. A first run with
+γ = 0.995 learned to sail about a knot too fast, since discounting makes
+progress credit earned early worth more than fuel burned later. Every seed
+reaches full arrival within about 50k of its 1M training steps; the curves are
+in `results/learning_curve_seed*.png`.
 
-The Deep RL inference engine was tested in two areas: computational latency compared to traditional search algorithms, and physical fuel efficiency compared to standard maritime navigation methods.
+## Running it
 
-### 1. Algorithmic Efficiency (Deep RL vs. A* Search)
-
-We compared the agent's continuous state-space inference to a discrete, weather-adaptive A* graph-search baseline.
-
-| Metric | Classical A* Search | Deep RL Agent (PPO) | Net Improvement |
-| :--- | :--- | :--- | :--- |
-| **Time Complexity** | $O(N \log N)$ | **$O(1)$** | Algorithmic shift |
-| **Inference Latency** | 21.59 seconds | **0.54 seconds** | **40x Faster** |
-| **Path Strategy** | Discrete Grid (Jagged) | **Continuous Kinematics** | Physics-Optimized |
-
-### 2. Environmental Simulation (Storm Avoidance Scenario)
-To test physical viability, the RL agent was evaluated against standard "Fixed Waypoint" maritime navigation. A synthetic, dynamically rotated Gaussian storm front, or squall line, was placed directly into a traditional shipping lane.
-
-![Storm Avoidance Routing](./route_comparison.png)
-
-*Notice how the Deep RL agent (Green) can naturally compute a continuous kinematic arc to avoid the greatest wave resistance of the storm. In contrast, the Traditional Route (Red) goes straight through.*
-
-| Metric | Traditional Navigation | Deep RL Agent (PPO) | Net Improvement |
-| :--- | :--- | :--- | :--- |
-| **Obstacle Avoidance** | Fails (Drives through storm) | **Succeeds (Curves around)** | Zero-Collision |
-| **Fuel Consumed** | 81.1 MT | **35.2 MT** | **56.6% Reduction**|
-| **Cost Savings** | Baseline | **~$27,500 per voyage** | Massive ROI |
-
-
-*Note: The significant drop in fuel consumption shows that the RL agent can make small changes in direction without facing the large grid-discretization penalties found in traditional pathfinding methods.*
-
-## Tech Stack & Tooling
-
-- **Machine Learning & RL:** PyTorch, Stable-Baselines3, Gymnasium
-- **Data Engineering:** Xarray, NumPy, Pandas, NetCDF4
-- **Software Engineering:** Object-Oriented Programming (OOP), Python Type Hinting
-- **DevOps & CI/CD:** GitHub Actions, Pytest, Poetry
-
-## Repository Structure
-
-```text
-├── data/                        # Ignored directory 
-├── tests/                       # Pytest suite for physics and data 
-├── .github/workflows/           # CI/CD pipeline configuration
-└── src/ship_routing
-    ├── data_pipeline/
-    │   └── loader.py            # Weather tensor generation and 
-    ├── engine/
-    │   ├── astar__c.py          # Classical baseline pathfinding 
-    │   └── physics.py           # ITTC Hydrodynamic calculations
-    └── models/
-        ├── envir.py             # Custom Gymnasium MDP Environment
-        ├── train.py             # PPO training loop and callbacks
-        └── model/               # Converged PPO model weights
-```
-
-##  Getting Started
-
-This project uses [Poetry](https://python-poetry.org/) for strict dependency isolation.
-
-### 1. Local Installation
+Needs Poetry and Python 3.10 to 3.12; numpy 1.26 has no wheels for newer
+versions.
 
 ```bash
-# Clone the repository
-git clone https://github.com/vaibhavtripathi7/ship-route-optimization.git
-cd ship-route-optimization
-
-# Install dependencies via Poetry
 poetry install
+poetry run pytest
+poetry run python -m ship_routing.train 0    # about 8 minutes on 8 cores, repeat for seeds 1 and 2
+poetry run python -m ship_routing.evaluate   # about a minute, rewrites results/
 ```
 
-### 2. Running the Test Suite
-
-This repository contains a continuous integration suite that checks the data loader's integrity and the physics engine's mathematical accuracy.
+The service loads `artifacts/ppo_seed0.zip` and routes against a synthetic
+forecast:
 
 ```bash
-poetry run pytest tests/
+docker build -t ship-routing .
+docker run -p 8000:8000 ship-routing
+curl localhost:8000/route -H "Content-Type: application/json" \
+  -d '{"start": [10, 60], "goal": [15, 70], "planner": "astar"}'
 ```
+
+`planner` is `ppo`, `astar` or `direct`; the last two also take `speed_knots`.
+The response carries the track, fuel, hours, cost and the time spent deciding.
+
+## Limitations
+
+- The weather is synthetic. It has the right structure, smooth fields and
+  moving storms, but not real statistics. A real forecast would plug in as
+  another `WeatherField`.
+- Every sea is treated as a head sea, which overcharges beam and following seas.
+- One ship type, no land, no traffic separation schemes, no seakeeping limits.
+- Decisions are hourly and the ship turns at most 15° an hour.
+- Geometry is a local flat earth, which is accurate to well under one percent
+  for these distances and latitudes.
+
+## Earlier version
+
+The first version of this repository claimed a 56.6% fuel saving over
+traditional routing and a 40x speedup over A*. Neither held up when I went back
+and checked:
+
+- The storm in that benchmark was added to a forecast hour the simulation never
+  read, so neither route was affected by it.
+- The saving came from the agent slowing to 5 kn and taking 3.7 times as long,
+  against a baseline fixed at 15 kn, with no cost for time.
+- The A* and RL timings were for different voyages, and most of the A* time
+  went into per cell xarray lookups.
+
+This rewrite fixes each of those: time has a price, storms sit in the forecast
+the ship actually sails through, every policy is costed by the same simulator,
+and every result above can be regenerated with the commands under Running it.
 
 ## License
 
-- This project is licensed under the [MIT](https://github.com/Vaibhavtripathi7/ship-route-optimization/blob/master/LICENSE) License.
+[MIT](LICENSE)
